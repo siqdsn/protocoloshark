@@ -1441,75 +1441,76 @@ function initChart() {
 </script>
 
 <script>
-// ── APPLE TOUCH ICON & FAVICON ──
-// iOS requires a real PNG blob URL — data:URI on <link> tags is blocked by Safari
+// ── APPLE TOUCH ICON & FAVICON from external image ──
 (function() {
-  function makeIcon(size, radius) {
+  var IMG_URL = 'https://i.pinimg.com/1200x/a4/12/a3/a412a3fe4c6e1473b038f8289241c59e.jpg';
+
+  function applyIcon(dataUrl) {
+    // Apple touch icon
+    var el180 = document.getElementById('apple-touch-icon-tag');
+    if (el180) el180.href = dataUrl;
+    // Browser favicon
+    var el32 = document.getElementById('favicon-tag');
+    if (el32) el32.href = dataUrl;
+    // Also update any existing link[rel=icon]
+    var existing = document.querySelector("link[rel='shortcut icon']");
+    if (existing) existing.href = dataUrl;
+  }
+
+  function drawFromImage(img, size) {
     var c = document.createElement('canvas');
     c.width = c.height = size;
     var ctx = c.getContext('2d');
-    var s = size, r = radius;
-
-    // Rounded background
+    // Dark rounded bg
+    var r = Math.round(size * 0.22);
     ctx.beginPath();
-    ctx.moveTo(r, 0); ctx.lineTo(s-r, 0);
-    ctx.arcTo(s, 0, s, r, r);
-    ctx.lineTo(s, s-r);
-    ctx.arcTo(s, s, s-r, s, r);
-    ctx.lineTo(r, s);
-    ctx.arcTo(0, s, 0, s-r, r);
-    ctx.lineTo(0, r);
-    ctx.arcTo(0, 0, r, 0, r);
+    ctx.moveTo(r,0); ctx.lineTo(size-r,0);
+    ctx.arcTo(size,0,size,r,r);
+    ctx.lineTo(size,size-r);
+    ctx.arcTo(size,size,size-r,size,r);
+    ctx.lineTo(r,size);
+    ctx.arcTo(0,size,0,size-r,r);
+    ctx.lineTo(0,r);
+    ctx.arcTo(0,0,r,0,r);
     ctx.closePath();
     ctx.fillStyle = '#1A202C';
     ctx.fill();
-
-    // Shark arrow — original viewBox 80x64, centered in square
-    var sx = s / 80, sy = s / 80;
-    var oy = (s - 64 * sy) / 2;
-    var pts = [[4,24],[76,4],[44,32],[76,60],[4,40]];
+    // Clip to circle for the image
+    ctx.save();
+    var pad = size * 0.1;
+    var d = size - pad*2;
     ctx.beginPath();
-    pts.forEach(function(p, i) {
-      var x = p[0] * sx, y = p[1] * sy + oy;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    });
+    ctx.arc(size/2, size/2, d/2, 0, Math.PI*2);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.fill();
-
-    return c;
+    ctx.clip();
+    ctx.drawImage(img, pad, pad, d, d);
+    ctx.restore();
+    return c.toDataURL('image/png');
   }
 
-  function setIconAsBlob(canvas, linkId, type) {
-    try {
-      canvas.toBlob(function(blob) {
-        if (!blob) return;
-        var url = URL.createObjectURL(blob);
-        var el = document.getElementById(linkId);
-        if (el) el.href = url;
-      }, type || 'image/png');
-    } catch(e) {
-      // Fallback to dataURL if blob fails
-      var el = document.getElementById(linkId);
-      if (el) el.href = canvas.toDataURL('image/png');
-    }
-  }
-
-  // Wait for DOM
-  function init() {
-    // 180x180 for Apple Touch Icon
-    var c180 = makeIcon(180, 40);
-    setIconAsBlob(c180, 'apple-touch-icon-tag', 'image/png');
-
-    // 32x32 for browser favicon
-    var c32 = makeIcon(32, 7);
-    setIconAsBlob(c32, 'favicon-tag', 'image/png');
+  function loadImageAndApply() {
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      try {
+        var dataUrl = drawFromImage(img, 180);
+        applyIcon(dataUrl);
+      } catch(e) {
+        // CORS blocked — fall back to direct URL
+        applyIcon(IMG_URL);
+      }
+    };
+    img.onerror = function() {
+      // If image fails to load, use direct URL as fallback
+      applyIcon(IMG_URL);
+    };
+    img.src = IMG_URL;
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', loadImageAndApply);
   } else {
-    init();
+    loadImageAndApply();
   }
 })();
 </script>
